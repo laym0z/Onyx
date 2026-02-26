@@ -1,27 +1,19 @@
 import markdown
-import sys
-from markdown.extensions import Extension
-from markdown.preprocessors import Preprocessor
 import re
 from os import path
-import shutil
 from pathlib import Path
 from PIL import Image
-from os import path
-from html import escape
 
-PATH_TO_IMAGES = "HTMLPages/images/"
+DEFAULT_SRC_FOLDER = Path("HTMLPages")
+PATH_TO_IMAGES = Path("HTMLPages/images/")
 ROOT_HTML = "index.html"
-
-# def set_menu(links):
-#     ul = '<ul class="menu">'
-#     for li in links:
-#         ul += f'<li>{li}</li>'
-#     ul += '</ul>'
-#     return ul
+ROOT_CSS = "style.css"
+ROOT_CSS_PATH = DEFAULT_SRC_FOLDER / ROOT_CSS
+ROOT_HTML_PATH = DEFAULT_SRC_FOLDER / ROOT_HTML
+MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 
-def set_menu(base_url: Path, root: Path):
+def set_menu(base_url: Path, root: Path) -> str:
     html = "<ul>\n"
 
     for item in sorted(root.iterdir()):
@@ -30,24 +22,12 @@ def set_menu(base_url: Path, root: Path):
         if item.name == ROOT_HTML:
             new_name = "HOME"
         else: new_name = item.stem
-        # if item.suffix == ".md":
-        #     # new_name = item.stem + ".html"
-        #     # target_path = item.with_name(new_name)
-        #     new_name = item.stem + ".html"
-        # else:
         
         target_path = item.with_name(item.name)
         if not base_url.is_dir(): 
             base_url = base_url.parent
         relative_path = path.relpath(target_path, start=base_url)
         relative_path = relative_path.replace("\\", "/")
-        
-        # print("-"*10)
-        
-        # print(f"Root: {root}")
-        # print(f"Target: {target_path}")
-        # print(f"Relative: {relative_path}")
-        # print("-"*10)
         if item.is_dir():
             html += f"<li><strong>{new_name}</strong>\n"
             html += set_menu(base_url, item)
@@ -58,40 +38,36 @@ def set_menu(base_url: Path, root: Path):
     html += "</ul>\n"
     return html
 
-
-def create_menu(root):
-    the_end = """
-                    </div>
-            </body>
-        </html>
-        """
-    root_path = Path(root)
+def create_menu(root_path: Path):
     for path in root_path.rglob("*"):
         if any(part.startswith('.') for part in path.parts):
             continue
-        #print(path)
         if not path.is_dir():
             print(path.name)
-            with open(path, "a", encoding="utf-8") as html:
-                html.write(set_menu(path, root_path)+the_end)
+            if path.suffix == ".html":
+                with open(path, "r", encoding="utf-8") as html:
+                    data = html.read()
+                with open(path, "w", encoding="utf-8") as html:
+                    data = data.replace(MENU_PLACEHOLDER_NAME, set_menu(path, root_path))
+                    # html.write(set_menu(path, root_path))
+                    html.write(data)
                 
-
-def get_relative_path(src, dst):
+def get_relative_path(src: Path, dst: Path):
     return path.relpath(dst, src)
 
-def create_css(target):
-    with open("style.css", "r") as css:
+def create_css():
+    with open(ROOT_CSS, "r") as css:
         css_text = css.read()
-    with open(target+"style.css", "w") as f:
+    with open(ROOT_CSS_PATH, "w") as f:
         f.write(css_text)
 
-def create_root(root):
-    with open("index.html", "r") as index:
+def create_root():
+    with open(ROOT_HTML, "r") as index:
         text = index.read()
-    with open(root+"index.html", "w") as index:
+    with open(ROOT_HTML_PATH, "w") as index:
         index.write(text)
 
-def copy_directory(src, dst):
+def copy_directory(src_path: Path, dst_path: Path):
 
     image_extensions = [
         ".jpg",
@@ -106,23 +82,12 @@ def copy_directory(src, dst):
         ".ico"
     ]
 
-    src_path = Path(src)
-    dst_path = Path(dst)
-
     for path in src_path.rglob("*"):
-        CSS_PATH = Path("HTMLPages/style.css")
         if any(part.startswith('.') for part in path.parts):
             continue
 
         relative = path.relative_to(src_path)
         target = dst_path / relative
-        #print(target)
-        # shutil.copytree(
-        #     src_path,
-        #     dst_path,
-        #     ignore=shutil.ignore_patterns(".*"),
-        #     dirs_exist_ok=True  # дозволяє копіювати поверх існуючої структури (Python 3.8+)
-        # )
 
         if path.is_dir():
             target.mkdir(parents=True, exist_ok=True)
@@ -146,14 +111,18 @@ def copy_directory(src, dst):
                     <head>
                         <meta charset="UTF-8">
                         <title>Document</title>
-                        <link rel="stylesheet" href={get_relative_path(target, CSS_PATH)}>
+                        <link rel="stylesheet" href={get_relative_path(target, ROOT_CSS_PATH)}>
                     </head>
                     <body>
-                        <h1>{target.stem}</h2>
+                        <h1 class="topic-name">{target.stem}</h2>
                         <div class="main">
+                            {MENU_PLACEHOLDER_NAME}
                             <div class="content">
                             {md_to_html}
                             </div>
+                        </div>
+                    </body>
+                </html>
                 """
 
             with open(target, "w", encoding="utf-8") as f:
@@ -162,24 +131,7 @@ def copy_directory(src, dst):
             img = Image.open(path)
             img.save(target)
 
-def set_photos(html, current_path):
-    # pattern = re.compile(
-    #     r'!\[\[(.*?)\]\]', 
-    #     flags=re.IGNORECASE)
-    # if pattern.match(html):
-    #     name_of_the_file = re.findall(pattern, html)[0]
-    #     image_path = path.join(PATH_TO_IMAGES, name_of_the_file)
-    #     def replacer(match):
-    #         #filename = match.group(1).strip()
-    #         return f'<img class="image" src="{image_path}">'
-    #     try:
-    #         #check if this is even file
-    #         with open(image_path, 'r') as file:
-    #             return pattern.sub(replacer, html)
-    #     except:
-    #         return
-    # else:
-    #     return
+def set_photos(html: str, current_path: Path) -> str:
     pattern = re.compile(r'!\[\[(.+?)\]\]')
 
     def replacer(match):
@@ -189,7 +141,7 @@ def set_photos(html, current_path):
 
     return pattern.sub(replacer, html)
 
-def preprocess_callouts(md_text):
+def preprocess_callouts(md_text: str) -> str:
     """
     Замінює Obsidian-style callouts на HTML <div> перед Markdown конвертацією.
     Підтримує: note, warning, tip, info
@@ -212,15 +164,10 @@ def preprocess_callouts(md_text):
 
     return "\n".join(processed_lines)
 
-# def convert_md_to_html(input_file, output_file):
-#     pass
 if __name__ == "__main__":
-    # args = []
-    # for arg in sys.argv[1:]:
-    #     args.append(arg)
-    copy_directory("D:\Web\Web", "HTMLPages")
-    #convert_md_to_html(args[0], args[1])
-    create_css("HTMLPages/")
-    create_root("HTMLPages/")
-    create_menu("HTMLPages")
+
+    copy_directory(Path("D:\Web\Web"), Path(DEFAULT_SRC_FOLDER))
+    create_css()
+    create_root()
+    create_menu(Path(DEFAULT_SRC_FOLDER))
     
