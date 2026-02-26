@@ -1,0 +1,173 @@
+/* === Base Layout === */
+body {
+    margin: 0;
+    padding: 40px 20px;
+    background-color: #1e1e1e;
+    color: #dcddde;
+    font-family: DejaVu Sans Mono, monospace;
+    line-height: 1.6;
+}
+
+.main {
+    display: flex;
+    justify-content: center;
+}
+
+.content {
+    width: 60%;
+}
+
+main {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* === Headings === */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+    font-weight: 600;
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+}
+
+h1 { font-size: 2em; border-bottom: 1px solid #333; padding-bottom: 0.3em; }
+h2 { font-size: 1.6em; border-bottom: 1px solid #333; padding-bottom: 0.3em; }
+h3 { font-size: 1.3em; }
+
+/* === Paragraphs === */
+p {
+    margin: 1em 0;
+}
+
+/* === Links === */
+a {
+    color: #4ea1ff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* === Lists === */
+ul, ol {
+    padding-left: 1.5em;
+    margin: 1em 0;
+}
+
+li {
+    margin: 0.4em 0;
+}
+
+/* === Blockquotes === */
+blockquote {
+    border-left: 4px solid #4ea1ff;
+    padding: 0.5em 1em;
+    background-color: #2a2a2a;
+    margin: 1.5em 0;
+    color: #cfcfcf;
+}
+
+/* === Inline Code === */
+code {
+    background-color: #2a2a2a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Fira Code", Consolas, monospace;
+    font-size: 0.95em;
+}
+
+/* === Code Blocks === */
+pre {
+    background-color: #2a2a2a;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5em 0;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+}
+
+/* === Tables === */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.5em 0;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 8px 12px;
+}
+
+th {
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+/* === Horizontal Rule === */
+hr {
+    border: none;
+    border-top: 1px solid #333;
+    margin: 2em 0;
+}
+
+/* === Images === */
+img {
+    max-width: 100%;
+    border-radius: 6px;
+}
+
+/* === Selection === */
+::selection {
+    background: #264f78;
+    color: #ffffff;
+}
+
+.callout {
+    padding: 1em;
+    border-radius: 6px;
+    margin: 1em 0;
+}
+
+.callout-warning { background: #7e573a; border-left: 4px solid #f39c12; }
+.callout-note    { background: #1e2f3a; border-left: 4px solid #4ea1ff; }
+.callout-tip     { background: #0a3a2f; border-left: 4px solid #2ecc71; }
+.callout-info    { background: #1e2f3a; border-left: 4px solid #3498db; }
+
+.image-div {
+    width: 100wv;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    border-left: 2px solid #2a2a2a;
+    border-right: 2px solid #2a2a2a;
+}
+
+.menu {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    list-style: none;
+    width: 200px;
+}
+
+.menu li {
+    position: relative;
+    cursor: pointer;
+    border-left: 2px solid #2a2a2a;
+    padding: 5px;
+    padding-left: 10px;
+    width: 100%;
+    font-size: 15px;
+    transition: 1s;
+}
+
+.menu li:hover {
+    left: 10px;
+    
+    background-color: #404040;
+}
