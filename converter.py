@@ -4,11 +4,14 @@ from os import path
 from pathlib import Path
 from PIL import Image
 import sys
+import shutil
 
 DEFAULT_DST_FOLDER = Path("HTMLPages")
 PATH_TO_IMAGES = Path("images/")
+PATH_TO_FOLDER_ICON = Path("assets/icons/folder.png")
 ROOT_HTML = "index.html"
 ROOT_CSS = "style.css"
+ROOT_JS = "script.js"
 MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 ARGS = {
@@ -19,43 +22,50 @@ ARGS = {
     "root-index": "--ri",
     "root-css": "--rc"
 }
+blacklist_menu = ["images", "style.css", "assets", "script.js"]
 
-def set_menu(base_url: Path, root: Path) -> str:
-    html = "<ul>\n"
+def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int) -> str:
+    html = "<ul class='sub-list'>\n"
 
-    for item in sorted(root.iterdir()):
-        if item.name.startswith('.') or item.name == "images" or item.name == "style.css":
+    for item in sorted(dst_path.iterdir()):
+        if item.name.startswith('.') or item.name in blacklist_menu:
             continue
         if item.name == ROOT_HTML:
             new_name = "HOME"
         else: new_name = item.stem
         
         target_path = item.with_name(item.name)
-        if not base_url.is_dir(): 
-            base_url = base_url.parent
-        relative_path = path.relpath(target_path, start=base_url)
+        if not sub_path.is_dir(): 
+            sub_path = sub_path.parent
+        relative_path = path.relpath(target_path, start=sub_path)
         relative_path = relative_path.replace("\\", "/")
+
+        folder_id_counter+=1
+
+        assets_path = path.relpath(DEFAULT_DST_FOLDER/PATH_TO_FOLDER_ICON, start=sub_path)
+
         if item.is_dir():
-            html += f"<li><strong>{new_name}</strong>\n"
-            html += set_menu(base_url, item)
+            html += f"<li class='folder' data-folderID='{folder_id_counter}'><strong class='folder-name'><img src='{path.join('..', assets_path)}'>{new_name}</strong>\n"
+            html += set_menu(sub_path, item, folder_id_counter)
             html += "</li>\n"
         else:
-            html += f'<li><a href="{relative_path}">{new_name}</a></li>\n'
+            html += f'<li class="file"><a href="{relative_path}">{new_name}</a></li>\n'
 
     html += "</ul>\n"
     return html
 
-def create_menu(root_path: Path):
-    for path in root_path.rglob("*"):
-        if any(part.startswith('.') for part in path.parts):
+def create_menu(dst_path: Path):
+    for sub_path in dst_path.rglob("*"):
+        if any(part.startswith('.') for part in sub_path.parts):
             continue
-        if not path.is_dir():
+        if not sub_path.is_dir():
             # print(path.name)
-            if path.suffix == ".html":
-                with open(path, "r", encoding="utf-8") as html:
+            if sub_path.suffix == ".html":
+                with open(sub_path, "r", encoding="utf-8") as html:
                     data = html.read()
-                with open(path, "w", encoding="utf-8") as html:
-                    data = data.replace(MENU_PLACEHOLDER_NAME, set_menu(path, root_path))
+                with open(sub_path, "w", encoding="utf-8") as html:
+                    folder_id_counter = 0
+                    data = data.replace(MENU_PLACEHOLDER_NAME, f"<div class='menu'>{set_menu(sub_path, dst_path, folder_id_counter)}</div>")
                     # html.write(set_menu(path, root_path))
                     html.write(data)
                 
@@ -72,6 +82,12 @@ def create_root(dst: Path):
     with open(ROOT_HTML, "r") as index:
         text = index.read()
     with open(dst / ROOT_HTML, "w") as index:
+        index.write(text)
+
+def create_js(dst: Path):
+    with open(ROOT_JS, "r") as index:
+        text = index.read()
+    with open(dst / ROOT_JS, "w") as index:
         index.write(text)
 
 def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
@@ -121,14 +137,16 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                         <link rel="stylesheet" href={get_relative_path(target.parent, dst_path / ROOT_CSS)}>
                     </head>
                     <body>
-                        <h1 class="topic-name">{target.stem}</h2>
+                        
                         <div class="main">
                             {MENU_PLACEHOLDER_NAME}
                             <div class="content">
+                            <h1 class="topic-name">{target.stem}</h2>
                             {md_to_html}
                             </div>
                         </div>
                     </body>
+                    <script src={get_relative_path(target.parent, dst_path / ROOT_JS)}></script>
                 </html>
                 """
             if not target.exists() or (target.exists() and OVERWRITE):
@@ -157,7 +175,7 @@ def preprocess_callouts(md_text: str) -> str:
     """
     # regex шукає блок > [!type] або просто [!type]
     pattern = re.compile(
-        r'(?:^>?\s*)\[!(note|warning|tip|info)\]\s*(.*)', 
+        r'(?:^>?\s*)\[!(note|warning|tip|info|danger|example|success|question)\]\s*(.*)', 
         flags=re.IGNORECASE
     )
 
@@ -190,7 +208,7 @@ if __name__ == "__main__":
     if len(arguments) == 0 or (len(arguments) == 1 and arguments[0] != "--help"):
         print_help()
     elif not ARGS["src"] in arguments: 
-        print("Please, provide the obssdian vault with '--src VAULT'")
+        print("Please, provide the obsidian vault with '--src VAULT'")
     else:
         i = 0
         for arg in arguments:
@@ -227,6 +245,11 @@ if __name__ == "__main__":
             create_css(DEFAULT_DST_FOLDER)
         if CREATE_HTML:
             create_root(DEFAULT_DST_FOLDER)
+        try:
+            shutil.copytree(PATH_TO_FOLDER_ICON, DEFAULT_DST_FOLDER/"assets")
+        except:
+            print("Assets folder already exists!")
+        create_js(DEFAULT_DST_FOLDER)
         create_menu(Path(DEFAULT_DST_FOLDER))
         print(f"Vault was converted to {DEFAULT_DST_FOLDER}")
     

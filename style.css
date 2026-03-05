@@ -2,7 +2,7 @@
 body {
     margin: 0;
     padding: 10px 10px;
-    background-color: #1e1e1e;
+    background-color: #2e3440;
     color: #dcddde;
     font-family: DejaVu Sans Mono, monospace;
     line-height: 1.6;
@@ -14,11 +14,16 @@ body {
 }
 
 .content {
-    width: 80%;
+    width: 75%;
     display: flex;
-    /* justify-content: center; */
+    justify-content: center;
+    align-items: center;
     flex-direction: column;
     padding-right: 50px;
+}
+
+.content > * {
+    width: 60%;
 }
 
 main {
@@ -51,22 +56,73 @@ p {
 
 /* === Links === */
 a {
-    color: #fed11e;
+    position: relative;
+    color: white;
     text-decoration: none;
 }
 
 a:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 /* === Lists === */
+.menu {
+    background-color: #3b4252;
+    border-radius: 6px;
+    width: 25%;
+}
+
+ul li a:hover {
+    background-color: #596071;
+}
+
 ul, ol {
     padding-left: 1.5em;
     margin: 1em 0;
+    margin: 10px;
+    padding: 10px;
 }
 
 li {
     margin: 0.4em 0;
+    list-style: none;
+    position: relative;
+    transition: .2s;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.sub-list li a {
+    display: flex;
+    width: auto;
+    border-radius: 10px;
+    padding: 5px;
+    transition: background-color .5s;
+    
+}
+
+.sub-list .file {
+    margin: 10px;
+    list-style:circle;
+}
+
+.sub-list {
+    list-style: none;
+    padding-left: 10px;
+}
+
+.sub-list ul {
+    display: none;
+    margin-left: 15px;
+}
+
+.folder.open > ul {
+    display: block;
+}
+
+.folder-name {
+    cursor: pointer;
+    user-select: none;
 }
 
 /* === Blockquotes === */
@@ -76,6 +132,12 @@ blockquote {
     background-color: #2a2a2a;
     margin: 1.5em 0;
     color: #cfcfcf;
+}
+
+hr {
+  height: 2px;
+  background-color: #3b4252;
+  border: none;
 }
 
 /* === Inline Code === */
@@ -119,11 +181,6 @@ th {
 }
 
 /* === Horizontal Rule === */
-hr {
-    border: none;
-    border-top: 1px solid #333;
-    margin: 2em 0;
-}
 
 /* === Images === */
 img {
@@ -141,23 +198,42 @@ img {
     padding: 1em;
     border-radius: 6px;
     margin: 1em 0;
+    cursor: pointer;
 }
 
-.callout-warning { background: #7e573a; border-left: 4px solid #f39c12; }
-.callout-note    { background: #1e2f3a; border-left: 4px solid #4ea1ff; }
-.callout-tip     { background: #0a3a2f; border-left: 4px solid #2ecc71; }
-.callout-info    { background: #1e2f3a; border-left: 4px solid #3498db; }
+.callout p {
+    font-weight: bold;
+}
+
+.callout:hover {
+    outline: 2px solid #727884;
+}
+
+.callout-warning { background: #3e3d44; color: #d08770;}
+.callout-warning p {color: #d08770;}
+.callout-note    { background: #333c4b; color: #5e81ac;}
+.callout-note p {color: #5e81ac;}
+.callout-tip     { background: #37434e; color: #88c0d0;}
+.callout-tip p {color: #88c0d0;}
+.callout-info    { background: #333c4b; color: #5e81ac;}
+.callout-info p {color: #5e81ac;}
+.callout-danger { background: #3c3944; color: #bf616a;}
+.callout-danger p {color: #bf616a;}
+.callout-example { background: #3b3d4b;}
+.callout-example p {color: #b48ead;}
+.callout-success { background: #3a4247; color: #a3be8c;}
+.callout-success p {color: #a3be8c;}
+.callout-question { background: #3b3d4b;}
+.callout-question p {color: #b48ead;}
 
 .image-div {
     width: 100wv;
     display: flex;
     justify-content: center;
     align-content: center;
-    border-left: 2px solid #2a2a2a;
-    border-right: 2px solid #2a2a2a;
 }
 
-.menu {
+/* .menu {
     position: absolute;
     top: 30px;
     left: 30px;
@@ -180,4 +256,4 @@ img {
     left: 10px;
     
     background-color: #404040;
-}
+} */
