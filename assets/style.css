@@ -16,7 +16,7 @@ body {
 .content {
     width: 75%;
     display: flex;
-    justify-content: center;
+    /* justify-content: center; */
     align-items: center;
     flex-direction: column;
     padding-right: 50px;
@@ -57,7 +57,7 @@ p {
 /* === Links === */
 a {
     position: relative;
-    color: white;
+    color: #4ea1ff;
     text-decoration: none;
 }
 
@@ -68,8 +68,8 @@ a:hover {
 /* === Lists === */
 .menu {
     background-color: #3b4252;
-    border-radius: 6px;
     width: 25%;
+    min-height: 100vh;
 }
 
 ul li a:hover {
@@ -95,25 +95,39 @@ li {
 .sub-list li a {
     display: flex;
     width: auto;
-    border-radius: 10px;
     padding: 5px;
     transition: background-color .5s;
-    
+    padding-left: 10px;
+    color: white;
 }
 
 .sub-list .file {
     margin: 10px;
-    list-style:circle;
+    transition: .1s ease;
+}
+
+.sub-list .file:hover {
+    border-left: 4px solid #4ea1ff;
 }
 
 .sub-list {
     list-style: none;
+    padding: 0;
+    margin: 0;
     padding-left: 10px;
 }
 
 .sub-list ul {
     display: none;
     margin-left: 15px;
+}
+
+.folder {
+    transition: .1s ease;
+}
+
+.folder:hover {
+    border-left: 4px solid #4ea1ff;
 }
 
 .folder.open > ul {
@@ -123,7 +137,19 @@ li {
 .folder-name {
     cursor: pointer;
     user-select: none;
+    display: flex;
+    align-items: center;
+    transition: background-color .5s;
 }
+
+.folder-name:hover{
+    background-color: #596071;
+}
+
+.folder-name img {
+    padding: 5px;
+}
+
 
 /* === Blockquotes === */
 blockquote {

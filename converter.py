@@ -5,22 +5,25 @@ from pathlib import Path
 from PIL import Image
 import sys
 import shutil
+from tabulate import tabulate
 
 DEFAULT_DST_FOLDER = Path("HTMLPages")
 PATH_TO_IMAGES = Path("images/")
 PATH_TO_FOLDER_ICON = Path("assets/icons/folder.png")
+PATH_TO_FAVICON = Path("assets/icons/favicon.ico")
+ROOT_MD = "index.md"
 ROOT_HTML = "index.html"
-ROOT_CSS = "style.css"
-ROOT_JS = "script.js"
+ROOT_CSS = Path("assets/style.css")
+ROOT_JS = Path("assets/script.js")
 MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 ARGS = {
-    "help": "--help",
-    "src": "--src",
-    "dst": "--dst",
-    "overwrite": "--overwrite",
-    "root-index": "--ri",
-    "root-css": "--rc"
+    "--help": "print help menu",
+    "--src": "source directory (--src [PATH])",
+    "--dst": "destination directory (--dst [PATH])",
+    "--overwrite": "rewrite existing files",
+    "--ri": "write or rewrite main page",
+    "--rc": "write or rewrite style.css "
 }
 blacklist_menu = ["images", "style.css", "assets", "script.js"]
 
@@ -79,16 +82,44 @@ def create_css(dst: Path):
         f.write(css_text)
 
 def create_root(dst: Path):
-    with open(ROOT_HTML, "r") as index:
-        text = index.read()
-    with open(dst / ROOT_HTML, "w") as index:
-        index.write(text)
+    try:
+        with open(ROOT_MD, "r", encoding="utf-8") as index:
+            text = index.read()
+            md_to_html = markdown.markdown(text,extensions=["fenced_code"])
+    except:
+        md_to_html="<h1>Main Page</h1>"
+    html_content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Main Page</title>
+            <link rel="stylesheet" href="style.css">
+            <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+        </head>
+        <body>
+            
+            <div class="main">
+                <div class='PLACEHODER'></div>
+                <div class="content">
+                    {md_to_html}
+                </div>
+            </div>
+            
+        </body>
+        <script src="{dst/ROOT_JS}"></script>
+        </html>
+    """
+    with open(dst / ROOT_HTML, "w", encoding="utf-8") as index:
+        index.write(html_content)
 
 def create_js(dst: Path):
     with open(ROOT_JS, "r") as index:
         text = index.read()
     with open(dst / ROOT_JS, "w") as index:
         index.write(text)
+    
 
 def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
 
@@ -105,21 +136,21 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
         ".ico"
     ]
 
-    for path in src_path.rglob("*"):
-        if any(part.startswith('.') for part in path.parts):
+    for sub_path in src_path.rglob("*"):
+        if any(part.startswith('.') for part in sub_path.parts):
             continue
 
-        relative = path.relative_to(src_path)
+        relative = sub_path.relative_to(src_path)
         target = dst_path / relative
 
-        if path.is_dir():
+        if sub_path.is_dir():
             target.mkdir(parents=True, exist_ok=True)
 
-        elif path.suffix == ".md":
+        elif sub_path.suffix == ".md":
             target = target.with_suffix(".html")
             target.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(path, "r", encoding="utf-8") as f:
+            with open(sub_path, "r", encoding="utf-8") as f:
                 text = f.read()
 
             blockquote = preprocess_callouts(text)
@@ -135,6 +166,7 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                         <meta charset="UTF-8">
                         <title>{target.stem}</title>
                         <link rel="stylesheet" href={get_relative_path(target.parent, dst_path / ROOT_CSS)}>
+                        <link rel="icon" href={get_relative_path(target.parent, DEFAULT_DST_FOLDER/PATH_TO_FAVICON)} type="image/x-icon">
                     </head>
                     <body>
                         
@@ -153,8 +185,8 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                 print(target.name)
                 with open(target, "w", encoding="utf-8") as f:
                     f.write(html_content)
-        elif path.suffix in image_extensions:
-            img = Image.open(path)
+        elif sub_path.suffix in image_extensions:
+            img = Image.open(sub_path)
             img.save(target)
 
 def set_photos(html: str, current_path: Path, dst_path: Path) -> str:
@@ -169,11 +201,6 @@ def set_photos(html: str, current_path: Path, dst_path: Path) -> str:
     return pattern.sub(replacer, html)
 
 def preprocess_callouts(md_text: str) -> str:
-    """
-    Замінює Obsidian-style callouts на HTML <div> перед Markdown конвертацією.
-    Підтримує: note, warning, tip, info
-    """
-    # regex шукає блок > [!type] або просто [!type]
     pattern = re.compile(
         r'(?:^>?\s*)\[!(note|warning|tip|info|danger|example|success|question)\]\s*(.*)', 
         flags=re.IGNORECASE
@@ -184,7 +211,6 @@ def preprocess_callouts(md_text: str) -> str:
         content = match.group(2).strip()
         return f'<div class="callout callout-{callout_type}">{content}</div>'
 
-    # Застосовуємо заміну рядок за рядком
     processed_lines = []
     for line in md_text.split("\n"):
         processed_lines.append(pattern.sub(replacer, line))
@@ -194,7 +220,10 @@ def preprocess_callouts(md_text: str) -> str:
 #-------------------HELP---------------
 
 def print_help():
-    print(ARGS)
+    list = []
+    for key, value in ARGS.items():
+        list.append([key, value])
+    print(tabulate(list))
 
 #------------------MAIN----------------
 
@@ -207,15 +236,14 @@ if __name__ == "__main__":
         arguments.append(arg)
     if len(arguments) == 0 or (len(arguments) == 1 and arguments[0] != "--help"):
         print_help()
-    elif not ARGS["src"] in arguments: 
+    elif arguments[0] == "--help":
+        print_help()
+    elif not "--src" in arguments: 
         print("Please, provide the obsidian vault with '--src VAULT'")
     else:
         i = 0
         for arg in arguments:
-            if arg == ARGS["help"]: 
-                print_help()
-                sys.exit()
-            elif arg == ARGS["src"]:
+            if arg == "--src":
                 try:
                     src_vault = Path(arguments[i+1])
                     if not src_vault.exists():
@@ -224,18 +252,18 @@ if __name__ == "__main__":
                 except:
                     print_help()
                     sys.exit()
-            elif arg == ARGS["dst"]:
+            elif arg == "--dst":
                 try:
                     DEFAULT_DST_FOLDER = Path(arguments[i+1])
                 except:
                     print(f"Path is invalid: {src_vault}")
                     print_help()
                     sys.exit()
-            elif arg == ARGS["root-index"]:
+            elif arg == "--ri":
                 CREATE_HTML=True
-            elif arg == ARGS["root-css"]:
+            elif arg == "--rc":
                 CREATE_CSS=True
-            elif arg == ARGS["overwrite"]:
+            elif arg == "--overwrite":
                 OVERWRITE=True
             
             i+=1
@@ -246,10 +274,11 @@ if __name__ == "__main__":
         if CREATE_HTML:
             create_root(DEFAULT_DST_FOLDER)
         try:
-            shutil.copytree(PATH_TO_FOLDER_ICON, DEFAULT_DST_FOLDER/"assets")
+            shutil.copytree(Path("assets"), DEFAULT_DST_FOLDER/"assets")
         except:
             print("Assets folder already exists!")
         create_js(DEFAULT_DST_FOLDER)
         create_menu(Path(DEFAULT_DST_FOLDER))
+        
         print(f"Vault was converted to {DEFAULT_DST_FOLDER}")
     
