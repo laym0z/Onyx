@@ -1,6 +1,5 @@
 # 📝Description
 
----
 
 This code converts your Obsidian repository into a convenient website that you can host and share with others.
 
@@ -9,7 +8,6 @@ This code converts your Obsidian repository into a convenient website that you c
 
 # 💻Installation
 
----
 
 First, you need to copy the repository to your local computer, create a virtual environment, and install the components required for the project:
 
@@ -35,7 +33,6 @@ venv/bin/pip install -r requirements.txt
 
 # ⚙️Command options
 
----
 
 ```
 --src [PATH]    # the source obsidian vault
@@ -50,7 +47,6 @@ venv/bin/pip install -r requirements.txt
 
 # 🎓Example of use
 
----
 
 ## First start
 
@@ -67,3 +63,9 @@ venv/bin/pip install -r requirements.txt
 ```
 .\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path"
 ```
+
+---
+
+## Main Page
+
+You can make the `index.md` file in the same directory with `converter.py` and cusomize it with simple MD syntax (NOT OBSIDIAN!). Then just use `--ri` option to rewrite changes.

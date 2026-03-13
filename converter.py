@@ -15,6 +15,11 @@ ROOT_MD = "index.md"
 ROOT_HTML = "index.html"
 ROOT_CSS = Path("assets/style.css")
 ROOT_JS = Path("assets/script.js")
+DST_CSS = Path("style.css")
+DST_HTML = Path("index.html")
+DST_JS = Path("script.js")
+
+
 MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 ARGS = {
@@ -28,6 +33,7 @@ ARGS = {
 blacklist_menu = ["images", "style.css", "assets", "script.js"]
 
 def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int) -> str:
+    home_page = ""
     html = "<ul class='sub-list'>\n"
 
     for item in sorted(dst_path.iterdir()):
@@ -48,14 +54,17 @@ def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int) -> str:
         assets_path = path.relpath(DEFAULT_DST_FOLDER/PATH_TO_FOLDER_ICON, start=sub_path)
 
         if item.is_dir():
-            html += f"<li class='folder' data-folderID='{folder_id_counter}'><strong class='folder-name'><img src='{path.join('..', assets_path)}'>{new_name}</strong>\n"
+            html += f"<li class='folder' data-folderID='{folder_id_counter}'><strong class='folder-name'><img src='{assets_path}'>{new_name}</strong>\n"
             html += set_menu(sub_path, item, folder_id_counter)
             html += "</li>\n"
         else:
-            html += f'<li class="file"><a href="{relative_path}">{new_name}</a></li>\n'
+            if item.name == ROOT_HTML:
+                home_page = f'<h1 class="home"><a href="{relative_path}">{new_name}</a></h1>\n'
+            else:
+                html += f'<li class="file"><a href="{relative_path}">{new_name}</a></li>\n'
 
     html += "</ul>\n"
-    return html
+    return home_page+html
 
 def create_menu(dst_path: Path):
     for sub_path in dst_path.rglob("*"):
@@ -78,7 +87,7 @@ def get_relative_path(src: Path, dst: Path):
 def create_css(dst: Path):
     with open(ROOT_CSS, "r") as css:
         css_text = css.read()
-    with open(dst / ROOT_CSS, "w") as f:
+    with open(dst / DST_CSS, "w") as f:
         f.write(css_text)
 
 def create_root(dst: Path):
@@ -108,16 +117,16 @@ def create_root(dst: Path):
             </div>
             
         </body>
-        <script src="{dst/ROOT_JS}"></script>
+        <script src="{DST_JS}"></script>
         </html>
     """
-    with open(dst / ROOT_HTML, "w", encoding="utf-8") as index:
+    with open(dst / DST_HTML, "w", encoding="utf-8") as index:
         index.write(html_content)
 
 def create_js(dst: Path):
     with open(ROOT_JS, "r") as index:
         text = index.read()
-    with open(dst / ROOT_JS, "w") as index:
+    with open(dst / DST_JS, "w") as index:
         index.write(text)
     
 
@@ -156,7 +165,7 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
             blockquote = preprocess_callouts(text)
             photos = set_photos(blockquote, target, dst_path)
 
-            md_to_html = markdown.markdown(photos,extensions=["fenced_code"])
+            md_to_html = markdown.markdown(photos,extensions=["fenced_code", "extra"])
 
             #{set_menu(target, Path("HTMLPages"))}
             html_content = f"""
@@ -165,7 +174,7 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                     <head>
                         <meta charset="UTF-8">
                         <title>{target.stem}</title>
-                        <link rel="stylesheet" href={get_relative_path(target.parent, dst_path / ROOT_CSS)}>
+                        <link rel="stylesheet" href={get_relative_path(target.parent, dst_path / DST_CSS)}>
                         <link rel="icon" href={get_relative_path(target.parent, DEFAULT_DST_FOLDER/PATH_TO_FAVICON)} type="image/x-icon">
                     </head>
                     <body>
@@ -178,7 +187,7 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                             </div>
                         </div>
                     </body>
-                    <script src={get_relative_path(target.parent, dst_path / ROOT_JS)}></script>
+                    <script src={get_relative_path(target.parent, dst_path / DST_JS)}></script>
                 </html>
                 """
             if not target.exists() or (target.exists() and OVERWRITE):
@@ -209,7 +218,7 @@ def preprocess_callouts(md_text: str) -> str:
     def replacer(match):
         callout_type = match.group(1).lower()
         content = match.group(2).strip()
-        return f'<div class="callout callout-{callout_type}">{content}</div>'
+        return f'<div class="callout callout-{callout_type}" markdown="1">{content}</div>'
 
     processed_lines = []
     for line in md_text.split("\n"):
@@ -274,11 +283,11 @@ if __name__ == "__main__":
         if CREATE_HTML:
             create_root(DEFAULT_DST_FOLDER)
         try:
-            shutil.copytree(Path("assets"), DEFAULT_DST_FOLDER/"assets")
+            shutil.copytree(Path("assets"), DEFAULT_DST_FOLDER/"assets", ignore=shutil.ignore_patterns('script.js', 'style.css'))
         except:
             print("Assets folder already exists!")
         create_js(DEFAULT_DST_FOLDER)
-        create_menu(Path(DEFAULT_DST_FOLDER))
+        create_menu(DEFAULT_DST_FOLDER)
         
         print(f"Vault was converted to {DEFAULT_DST_FOLDER}")
     
