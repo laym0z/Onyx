@@ -1,6 +1,10 @@
-<img src="assets/Logo.png" height=200 align="center"/>
+<p align="center">
+    <img src="assets/Logo.png" height=200/>
+</p>
+<h1 align="center">Onyx</h1>
 
-# 📝About Project
+
+# 📝About the project
 
 
 This code converts your Obsidian repository into a convenient website that you can host and share with others.
