@@ -1,4 +1,6 @@
-# 📝Description
+<img src="assets/Logo.png" height=200 align="center"/>
+
+# 📝About Project
 
 
 This code converts your Obsidian repository into a convenient website that you can host and share with others.
@@ -20,7 +22,7 @@ python3 -m venv venv
 .\venv\Scripts\activate
 
 #activate on Linux
-venv/bin/activate
+source venv/bin/activate
 
 #pip install on Windows
 .\venv\Scripts\pip.exe install -r requirements.txt
