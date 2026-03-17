@@ -46,24 +46,14 @@ venv/bin/pip install -r requirements.txt
 
 --ri            # write and overwrite index.html
 --rc            # write and overwrite style.css
---overwrite     # overwrite every sinle file from vault
 ```
 
 ---
 
 # 🎓Example of use
 
-
-## First start
-
 ```
-.\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path" --rc --ri
-```
-
-## Regular use
-
-```
-.\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path" --ri --rc --overwrite
+.\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path" --ri --rc
 ```
 
 ```
