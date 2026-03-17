@@ -1,12 +1,15 @@
 import markdown
 import re
-from os import path
+from os import path, remove, rmdir
 from pathlib import Path
 from PIL import Image
 import sys
 import shutil
 from tabulate import tabulate
+import hashlib
+import json
 
+DEFAULT_JSON_FOLDER = Path("Vaults")
 DEFAULT_DST_FOLDER = Path("HTMLPages")
 PATH_TO_IMAGES = Path("images/")
 PATH_TO_FOLDER_ICON = Path("assets/icons/folder.png")
@@ -20,6 +23,7 @@ DST_HTML = Path("index.html")
 DST_JS = Path("script.js")
 
 
+
 MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 ARGS = {
@@ -31,6 +35,42 @@ ARGS = {
     "--rc": "write or rewrite style.css "
 }
 blacklist_menu = ["images", "style.css", "assets", "script.js"]
+
+
+def file_hash(path: Path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(8192):
+            h.update(chunk)
+    return h.hexdigest()
+
+def flatten(tree, prefix=""):
+    result = {}
+    dirs = []
+    # for name, value in tree.items():
+    #     path = f"{prefix}/{name}" if prefix else name
+
+    #     if isinstance(value, dict):
+    #         result.update(flatten(value, path))
+    #     else:
+    #         result[path] = value
+
+    # return result
+    for name, value in tree.items():
+        current_path = f"{prefix}/{name}" if prefix else name
+
+        if isinstance(value, dict):
+            # це директорія
+            dirs.append(current_path)
+
+            sub_files, sub_dirs = flatten(value, current_path)
+            result.update(sub_files)
+            dirs.extend(sub_dirs)
+        else:
+            # це файл
+            result[current_path] = value
+
+    return result, dirs
 
 def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int) -> str:
     home_page = ""
@@ -127,11 +167,29 @@ def create_js(dst: Path):
     with open(ROOT_JS, "r") as index:
         text = index.read()
     with open(dst / DST_JS, "w") as index:
-        index.write(text)
-    
+        index.write(text)    
 
+
+#TODO: THIS CANT DELETE DIRS ALONG WITH THEIR CONTENTS, THIS NEEDS TO BE FIXED 
+
+def delete_dirs_and_files(remove_list: dict, removed_dirs: dict, dst: Path):
+    for value in remove_list:
+        new_name = path.splitext(value)[0]+'.html'
+        file_name = path.basename(new_name)
+        new_path = Path(dst/file_name)
+        if not new_path.is_dir():
+            remove(new_path)
+        else:
+            pass
+    for value in removed_dirs:
+        path_obj = Path(value)
+        dir_name = path.basename(path_obj)
+        new_path = Path(dst/dir_name)
+        rmdir(new_path)
+
+#TODO: THIS FUNCTION NO LONGER REQUIRES THE CREATION OF A NEW DIRECTORY TREE, THIS FUNCTIONALITY SHOULD BE MOVED TO THE FUNCTION
 def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
-
+    tree = {src_path.name: {}}
     image_extensions = [
         ".jpg",
         ".jpeg",
@@ -152,10 +210,20 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
         relative = sub_path.relative_to(src_path)
         target = dst_path / relative
 
+        node = tree[src_path.name]
+        parts = relative.parts
+
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+
+        name = parts[-1]
+        
         if sub_path.is_dir():
             target.mkdir(parents=True, exist_ok=True)
+            node.setdefault(name, {})
 
         elif sub_path.suffix == ".md":
+            node[name] = file_hash(sub_path)
             target = target.with_suffix(".html")
             target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -167,7 +235,6 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
 
             md_to_html = markdown.markdown(photos,extensions=["fenced_code", "extra"])
 
-            #{set_menu(target, Path("HTMLPages"))}
             html_content = f"""
                 <!DOCTYPE html>
                 <html lang="uk">
@@ -197,6 +264,11 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
         elif sub_path.suffix in image_extensions:
             img = Image.open(sub_path)
             img.save(target)
+    if not DEFAULT_JSON_FOLDER.is_dir():
+        DEFAULT_JSON_FOLDER.mkdir(parents=True, exist_ok=True)
+    with open(DEFAULT_JSON_FOLDER/"vaults.json", "w", encoding="utf-8") as json_file:
+        json_file.write(json.dumps(tree, indent=4))
+
 
 def set_photos(html: str, current_path: Path, dst_path: Path) -> str:
     pattern = re.compile(r'!\[\[(.+?)\]\]')
@@ -225,6 +297,7 @@ def preprocess_callouts(md_text: str) -> str:
         processed_lines.append(pattern.sub(replacer, line))
 
     return "\n".join(processed_lines)
+
 
 #-------------------HELP---------------
 
@@ -276,7 +349,76 @@ if __name__ == "__main__":
                 OVERWRITE=True
             
             i+=1
-        
+        #TODO: THIS NEEDS TO BE MOVED TO FUNCTION
+        if path.isdir(DEFAULT_DST_FOLDER):
+            with open(DEFAULT_JSON_FOLDER/"vaults.json", "r", encoding="utf-8") as f:
+                old_json = json.load(f)
+                old_json = {src_vault.name: old_json.get(src_vault.name)}
+                # old_json = json.dumps(old_json, indent=4)
+            tree = {src_vault.name: {}}
+
+            for sub_path in src_vault.rglob("*"):
+                rel = sub_path.relative_to(src_vault)
+                parts = rel.parts
+
+                node = tree[src_vault.name]
+
+                # проходимо по всіх частинах шляху крім останньої
+                for part in parts[:-1]:
+                    node = node.setdefault(part, {})
+
+                name = parts[-1]
+
+                if sub_path.is_dir():
+                    node.setdefault(name, {})
+                else:
+                    node[name] = file_hash(sub_path)
+            
+            new_json = json.dumps(tree, indent=4)
+            # print(f"Old JSON: {old_json}, Type: {type(old_json)}")
+            # print(f"New JSON: {new_json}, Type: {type(new_json)}")
+            # print(DeepDiff(old_json, new_json, ignore_order=True))
+
+            new_files, new_dirs = flatten(tree)
+            old_files, old_dirs = flatten(old_json)
+
+            new_files_keys = set(new_files)
+            old_files_keys = set(old_files)
+
+            new_dirs_keys = set(new_dirs)
+            old_dirs_keys = set(old_dirs)
+
+            #--------------FILES-------------------
+            added_files = new_files_keys - old_files_keys
+
+            removed_files = old_files_keys - new_files_keys
+
+            changed_files = {
+                k for k in new_files_keys & old_files_keys
+                if new_files[k] != old_files[k]
+            }
+
+            #-------------DIRS----------------------
+
+            added_dirs = new_dirs_keys - old_dirs_keys
+
+            removed_dirs = old_dirs_keys - new_dirs_keys
+
+
+            print(f"Files:")
+            print(f"""
+                  Changed: {changed_files if changed_files else ""}, 
+                  Removed: {removed_files if removed_files else ""}, 
+                  Added: {added_files if added_files else ""}
+            """)
+            print(f"--------------------------------------------------------------")
+            print("Dirs:")
+            print(f"""
+                  Removed: {removed_dirs if removed_dirs else ""}, 
+                  Added: {added_dirs if added_dirs else ""}
+            """)
+            delete_dirs_and_files(removed_files, removed_dirs, DEFAULT_DST_FOLDER)
+        #-------------------------------------
         copy_directory(Path(src_vault), Path(DEFAULT_DST_FOLDER), OVERWRITE)
         if CREATE_CSS:
             create_css(DEFAULT_DST_FOLDER)
