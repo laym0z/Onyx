@@ -30,7 +30,6 @@ ARGS = {
     "--help": "print help menu",
     "--src": "source directory (--src [PATH])",
     "--dst": "destination directory (--dst [PATH])",
-    "--overwrite": "rewrite existing files",
     "--ri": "write or rewrite main page",
     "--rc": "write or rewrite style.css "
 }
@@ -170,13 +169,11 @@ def create_js(dst: Path):
         index.write(text)    
 
 
-#TODO: THIS CANT DELETE DIRS ALONG WITH THEIR CONTENTS, THIS NEEDS TO BE FIXED 
-
 def delete_dirs_and_files(remove_list: dict, removed_dirs: dict, dst: Path):
     for value in remove_list:
         new_name = path.splitext(value)[0]+'.html'
-        file_name = path.basename(new_name)
-        new_path = Path(dst/file_name)
+        # file_name = path.basename(new_name)
+        new_path = Path(dst/new_name)
         if not new_path.is_dir():
             remove(new_path)
         else:
@@ -185,10 +182,13 @@ def delete_dirs_and_files(remove_list: dict, removed_dirs: dict, dst: Path):
         path_obj = Path(value)
         dir_name = path.basename(path_obj)
         new_path = Path(dst/dir_name)
-        rmdir(new_path)
+        try:
+            shutil.rmtree(new_path, ignore_errors=True)
+        except:
+            continue
 
 #TODO: THIS FUNCTION NO LONGER REQUIRES THE CREATION OF A NEW DIRECTORY TREE, THIS FUNCTIONALITY SHOULD BE MOVED TO THE FUNCTION
-def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
+def copy_directory(src_path: Path, dst_path: Path):
     tree = {src_path.name: {}}
     image_extensions = [
         ".jpg",
@@ -257,8 +257,8 @@ def copy_directory(src_path: Path, dst_path: Path, OVERWRITE: bool):
                     <script src={get_relative_path(target.parent, dst_path / DST_JS)}></script>
                 </html>
                 """
-            if not target.exists() or (target.exists() and OVERWRITE):
-                print(target.name)
+            if not target.exists():
+                # print(target.name)
                 with open(target, "w", encoding="utf-8") as f:
                     f.write(html_content)
         elif sub_path.suffix in image_extensions:
@@ -312,7 +312,6 @@ def print_help():
 if __name__ == "__main__":
     CREATE_CSS = False
     CREATE_HTML = False
-    OVERWRITE = False
     arguments = []
     for arg in sys.argv[1:]:
         arguments.append(arg)
@@ -345,16 +344,14 @@ if __name__ == "__main__":
                 CREATE_HTML=True
             elif arg == "--rc":
                 CREATE_CSS=True
-            elif arg == "--overwrite":
-                OVERWRITE=True
             
             i+=1
         #TODO: THIS NEEDS TO BE MOVED TO FUNCTION
         if path.isdir(DEFAULT_DST_FOLDER):
             with open(DEFAULT_JSON_FOLDER/"vaults.json", "r", encoding="utf-8") as f:
                 old_json = json.load(f)
-                old_json = {src_vault.name: old_json.get(src_vault.name)}
-                # old_json = json.dumps(old_json, indent=4)
+                #old_json = {src_vault.name: old_json.get(src_vault.name)}
+
             tree = {src_vault.name: {}}
 
             for sub_path in src_vault.rglob("*"):
@@ -363,7 +360,6 @@ if __name__ == "__main__":
 
                 node = tree[src_vault.name]
 
-                # проходимо по всіх частинах шляху крім останньої
                 for part in parts[:-1]:
                     node = node.setdefault(part, {})
 
@@ -379,11 +375,11 @@ if __name__ == "__main__":
             # print(f"New JSON: {new_json}, Type: {type(new_json)}")
             # print(DeepDiff(old_json, new_json, ignore_order=True))
 
-            new_files, new_dirs = flatten(tree)
-            old_files, old_dirs = flatten(old_json)
-
+            new_files, new_dirs = flatten(tree[src_vault.name])
+            old_files, old_dirs = flatten(old_json[src_vault.name])
             new_files_keys = set(new_files)
             old_files_keys = set(old_files)
+
 
             new_dirs_keys = set(new_dirs)
             old_dirs_keys = set(old_dirs)
@@ -404,22 +400,37 @@ if __name__ == "__main__":
 
             removed_dirs = old_dirs_keys - new_dirs_keys
 
-
-            print(f"Files:")
-            print(f"""
-                  Changed: {changed_files if changed_files else ""}, 
-                  Removed: {removed_files if removed_files else ""}, 
-                  Added: {added_files if added_files else ""}
-            """)
-            print(f"--------------------------------------------------------------")
-            print("Dirs:")
-            print(f"""
-                  Removed: {removed_dirs if removed_dirs else ""}, 
-                  Added: {added_dirs if added_dirs else ""}
-            """)
-            delete_dirs_and_files(removed_files, removed_dirs, DEFAULT_DST_FOLDER)
         #-------------------------------------
-        copy_directory(Path(src_vault), Path(DEFAULT_DST_FOLDER), OVERWRITE)
+            
+        if removed_files or removed_dirs or\
+        added_files or added_dirs or\
+        changed_files:
+            if changed_files:
+                print(f"Changed files: {changed_files}")
+            if added_files:
+                print(f"Added files: {added_files}")
+            if added_dirs:
+                print(f"Added folders: {added_dirs}")
+            if removed_files:
+                print(f"Removed files: {removed_files}")
+            if removed_dirs:
+                print(f"Removed folders: {removed_dirs}")
+            # print(f"Files:")
+            # print(f"""
+            #       Changed: {changed_files if changed_files else ""} 
+            #       Removed: {removed_files if removed_files else ""} 
+            #       Added: {added_files if added_files else ""}
+            # """)
+            # print(f"--------------------------------------------------------------")
+            # print("Dirs:")
+            # print(f"""
+            #       Removed: {removed_dirs if removed_dirs else ""}
+            #       Added: {added_dirs if added_dirs else ""}
+            # """)
+            delete_dirs_and_files(removed_files, removed_dirs, DEFAULT_DST_FOLDER)
+            copy_directory(Path(src_vault), Path(DEFAULT_DST_FOLDER))
+        else:
+            print("There is nothing to convert")
         if CREATE_CSS:
             create_css(DEFAULT_DST_FOLDER)
         if CREATE_HTML:
