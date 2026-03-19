@@ -9,6 +9,8 @@ from tabulate import tabulate
 import hashlib
 import json
 
+#TODO: REWRITE THIS WHOLE SHITCODE, HOLY FUCK
+
 DEFAULT_JSON_FOLDER = Path("Vaults")
 DEFAULT_DST_FOLDER = Path("HTMLPages")
 PATH_TO_IMAGES = Path("images/")
@@ -346,15 +348,14 @@ if __name__ == "__main__":
                 CREATE_CSS=True
             
             i+=1
-        #TODO: THIS NEEDS TO BE MOVED TO FUNCTION
+        #TODO: THIS NEEDS TO BE MOVED TO A FUNCTION
         if path.isdir(DEFAULT_DST_FOLDER):
-            with open(DEFAULT_JSON_FOLDER/"vaults.json", "r", encoding="utf-8") as f:
-                old_json = json.load(f)
-                #old_json = {src_vault.name: old_json.get(src_vault.name)}
 
             tree = {src_vault.name: {}}
 
             for sub_path in src_vault.rglob("*"):
+                if any(part.startswith('.') for part in sub_path.parts):
+                    continue
                 rel = sub_path.relative_to(src_vault)
                 parts = rel.parts
 
@@ -371,64 +372,62 @@ if __name__ == "__main__":
                     node[name] = file_hash(sub_path)
             
             new_json = json.dumps(tree, indent=4)
-            # print(f"Old JSON: {old_json}, Type: {type(old_json)}")
-            # print(f"New JSON: {new_json}, Type: {type(new_json)}")
-            # print(DeepDiff(old_json, new_json, ignore_order=True))
 
-            new_files, new_dirs = flatten(tree[src_vault.name])
-            old_files, old_dirs = flatten(old_json[src_vault.name])
-            new_files_keys = set(new_files)
-            old_files_keys = set(old_files)
+            dir_name = path.basename(src_vault)
+
+            vault_path = DEFAULT_JSON_FOLDER/f"{dir_name}.json"
+            print(vault_path)
+            if path.exists(vault_path):
+                with open(vault_path, "r", encoding="utf-8") as f:
+                    old_json = json.load(f)
+                    #old_json = {src_vault.name: old_json.get(src_vault.name)}
+                # print(f"Old JSON: {old_json}, Type: {type(old_json)}")
+                # print(f"New JSON: {new_json}, Type: {type(new_json)}")
+                # print(DeepDiff(old_json, new_json, ignore_order=True))
+
+                new_files, new_dirs = flatten(tree[src_vault.name])
+                old_files, old_dirs = flatten(old_json[src_vault.name])
+                new_files_keys = set(new_files)
+                old_files_keys = set(old_files)
 
 
-            new_dirs_keys = set(new_dirs)
-            old_dirs_keys = set(old_dirs)
+                new_dirs_keys = set(new_dirs)
+                old_dirs_keys = set(old_dirs)
 
-            #--------------FILES-------------------
-            added_files = new_files_keys - old_files_keys
+                #--------------FILES-------------------
+                added_files = new_files_keys - old_files_keys
 
-            removed_files = old_files_keys - new_files_keys
+                removed_files = old_files_keys - new_files_keys
 
-            changed_files = {
-                k for k in new_files_keys & old_files_keys
-                if new_files[k] != old_files[k]
-            }
+                changed_files = {
+                    k for k in new_files_keys & old_files_keys
+                    if new_files[k] != old_files[k]
+                }
 
-            #-------------DIRS----------------------
+                #-------------DIRS----------------------
 
-            added_dirs = new_dirs_keys - old_dirs_keys
+                added_dirs = new_dirs_keys - old_dirs_keys
 
-            removed_dirs = old_dirs_keys - new_dirs_keys
+                removed_dirs = old_dirs_keys - new_dirs_keys
 
-        #-------------------------------------
-            
-        if removed_files or removed_dirs or\
-        added_files or added_dirs or\
-        changed_files:
-            if changed_files:
-                print(f"Changed files: {changed_files}")
-            if added_files:
-                print(f"Added files: {added_files}")
-            if added_dirs:
-                print(f"Added folders: {added_dirs}")
-            if removed_files:
-                print(f"Removed files: {removed_files}")
-            if removed_dirs:
-                print(f"Removed folders: {removed_dirs}")
-            # print(f"Files:")
-            # print(f"""
-            #       Changed: {changed_files if changed_files else ""} 
-            #       Removed: {removed_files if removed_files else ""} 
-            #       Added: {added_files if added_files else ""}
-            # """)
-            # print(f"--------------------------------------------------------------")
-            # print("Dirs:")
-            # print(f"""
-            #       Removed: {removed_dirs if removed_dirs else ""}
-            #       Added: {added_dirs if added_dirs else ""}
-            # """)
-            delete_dirs_and_files(removed_files, removed_dirs, DEFAULT_DST_FOLDER)
-            copy_directory(Path(src_vault), Path(DEFAULT_DST_FOLDER))
+            #-------------------------------------
+                if removed_files or removed_dirs:
+                    delete_dirs_and_files(removed_files, removed_dirs, DEFAULT_DST_FOLDER)
+                    if removed_files:
+                        print(f"Removed files: {removed_files}")
+                    if removed_dirs:
+                        print(f"Removed folders: {removed_dirs}")
+                if added_files or added_dirs or changed_files:
+                    if changed_files:
+                        print(f"Changed files: {changed_files}")
+                    if added_files:
+                        print(f"Added files: {added_files}")
+                    if added_dirs:
+                        print(f"Added folders: {added_dirs}")
+                    copy_directory(Path(src_vault), Path(DEFAULT_DST_FOLDER))
+            else:
+                with open(vault_path, "w", encoding="utf-8") as f:
+                    f.write(json.dumps(tree, indent=4))
         else:
             print("There is nothing to convert")
         if CREATE_CSS:
