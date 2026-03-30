@@ -8,26 +8,15 @@ import shutil
 from tabulate import tabulate
 import hashlib
 import json
+import configparser
 
 #TODO: REWRITE THIS WHOLE SHITCODE, HOLY FUCK
 
-#TODO: I NEED TO DO SOMETHING WITH MENU GENERATOR. IT SHOULD ALWAYS BE GENERATED WITHOUT 
-# --FORCE OPTION. BECAUSE PLACEHOLDER DOES NOT EXIST ANYMORE AFTER CREATION
+#TODO: CREATE TEMPLATES HTML?
+
+#TODO: MAKE MANAGEMENTS OF YHE MAIN INDEX.HTML FILES
 
 #--------------------------GONFIG SECTION-----------------------
-DEFAULT_JSON_FOLDER = Path("Vaults")
-PATH_TO_IMAGES = Path("images/")
-PATH_TO_FOLDER_ICON = Path("assets/icons/folder.png")
-PATH_TO_FAVICON = Path("assets/icons/favicon.ico")
-ROOT_MD = "index.md"
-ROOT_HTML = "index.html"
-ROOT_CSS = Path("assets/style.css")
-ROOT_JS = Path("assets/script.js")
-DST_CSS = Path("style.css")
-DST_HTML = Path("index.html")
-DST_JS = Path("script.js")
-
-MENU_PLACEHOLDER_NAME = "<div class='PLACEHODER'></div>"
 
 ARGS = {
     "--help": "print help menu",
@@ -38,17 +27,70 @@ ARGS = {
 }
 blacklist_menu = ["images", "style.css", "assets", "script.js"]
 
+CONFIG_FILE = "config.ini"
+
+config_storage = {}
+
+def create_config():
+    config = configparser.ConfigParser()
+
+    config['PLACEHOLDERS'] = {
+        'MENU_PLACEHOLDER_NAME': "<div class='PLACEHODER'></div>",
+        'MAIN_CONTENT_PLACEHOLDER': '"<div class="CONTENT-PLACEHODER"></div>"'
+    }
+    config['ROOT_FILES'] = {
+        'ROOT_MD': 'index.md',
+        'ROOT_HTML': 'index.html',
+        'ROOT_CSS': 'assets/styles/style.css',
+        'ROOT_JS': 'assets/script.js'
+    }
+
+    config['DEFAULT_PATHES'] = {
+        'PATH_TO_IMAGES': 'images/',
+        'PATH_TO_FOLDER_ICON': 'assets/icons/folder.png',
+        'PATH_TO_FAVICON': 'assets/icons/favicon.ico',
+        'DEFAULT_JSON_FOLDER': 'Vaults'
+    }
+
+    config['BLACKLIST'] = {
+        'blacklist_files': ["images", "style.css", "assets", "script.js"]
+    }
+
+    with open('config.ini', 'w') as configfile:
+        config.write(configfile)
+
+def read_config():
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+    config_storage = {
+        'DEFAULT_JSON_FOLDER': config.get('DEFAULT_PATHES', 'DEFAULT_JSON_FOLDER'),
+        'PATH_TO_IMAGES': config.get('DEFAULT_PATHES', 'PATH_TO_IMAGES'),
+        'PATH_TO_FOLDER_ICON': config.get('DEFAULT_PATHES', 'PATH_TO_FOLDER_ICON'),
+        'PATH_TO_FAVICON': config.get('DEFAULT_PATHES', 'PATH_TO_FAVICON'),
+
+        'ROOT_MD': config.get('ROOT_FILES', 'ROOT_MD'),
+        'ROOT_HTML': config.get('ROOT_FILES', 'ROOT_HTML'),
+        'ROOT_CSS': config.get('ROOT_FILES', 'ROOT_CSS'),
+        'ROOT_JS': config.get('ROOT_FILES', 'ROOT_JS'),
+
+        'MENU_PLACEHOLDER_NAME': config.get('PLACEHOLDERS', 'MENU_PLACEHOLDER_NAME'),
+        'MAIN_CONTENT_PLACEHOLDER': config.get('PLACEHOLDERS', 'MAIN_CONTENT_PLACEHOLDER'),
+
+        'blacklist_files': config.get('BLACKLIST', 'blacklist_files')
+    }
+    return config_storage
+    
 #---------------CREATE MAIN WEB COMPONENTS----------------------
 
 def create_css(dst: Path):
-    with open(ROOT_CSS, "r") as css:
+    with open(Path(config_storage['ROOT_CSS']), "r") as css:
         css_text = css.read()
-    with open(dst / DST_CSS, "w") as f:
+    with open(dst / Path(config_storage['ROOT_CSS']), "w") as f:
         f.write(css_text)
 
 def create_root(dst: Path):
     try:
-        with open(ROOT_MD, "r", encoding="utf-8") as index:
+        with open(Path(config_storage['ROOT_MD']), "r", encoding="utf-8") as index:
             text = index.read()
             md_to_html = markdown.markdown(text,extensions=["fenced_code"])
     except:
@@ -60,8 +102,8 @@ def create_root(dst: Path):
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Main Page</title>
-            <link rel="stylesheet" href="style.css">
-            <link rel="icon" href="{PATH_TO_FAVICON}" type="image/x-icon">
+            <link rel="stylesheet" href="{Path(config_storage['ROOT_CSS'])}">
+            <link rel="icon" href="{Path(config_storage['PATH_TO_FAVICON'])}" type="image/x-icon">
         </head>
         <body>
             
@@ -73,16 +115,16 @@ def create_root(dst: Path):
             </div>
             
         </body>
-        <script src="{DST_JS}"></script>
+        <script src="{Path(config_storage['ROOT_JS'])}"></script>
         </html>
     """
-    with open(dst / DST_HTML, "w", encoding="utf-8") as index:
+    with open(dst / Path(config_storage['ROOT_HTML']), "w", encoding="utf-8") as index:
         index.write(html_content)
 
 def create_js(dst: Path):
-    with open(ROOT_JS, "r") as index:
+    with open(Path(config_storage['ROOT_JS']), "r") as index:
         text = index.read()
-    with open(dst / DST_JS, "w") as index:
+    with open(dst / Path(config_storage['ROOT_JS']), "w") as index:
         index.write(text)   
 
 #-----------------------JSON VAULT------------------------------
@@ -160,9 +202,9 @@ def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int, dst_folder:
     html = "<ul class='sub-list'>\n"
 
     for item in sorted(dst_path.iterdir()):
-        if item.name.startswith('.') or item.name in blacklist_menu:
+        if item.name.startswith('.') or item.name in config_storage['blacklist_files']:
             continue
-        if item.name == ROOT_HTML:
+        if item.name == config_storage['ROOT_HTML']:
             new_name = "HOME"
         else: new_name = item.stem
         
@@ -174,14 +216,14 @@ def set_menu(sub_path: Path, dst_path: Path, folder_id_counter: int, dst_folder:
 
         folder_id_counter+=1
 
-        assets_path = path.relpath(dst_folder/PATH_TO_FOLDER_ICON, start=sub_path)
+        assets_path = path.relpath(dst_folder/Path(config_storage['PATH_TO_FOLDER_ICON']), start=sub_path)
 
         if item.is_dir():
             html += f"<li class='folder' data-folderID='{folder_id_counter}'><strong class='folder-name'><img src='{assets_path}'>{new_name}</strong>\n"
             html += set_menu(sub_path, item, folder_id_counter, dst_folder)
             html += "</li>\n"
         else:
-            if item.name == ROOT_HTML:
+            if item.name == config_storage['ROOT_HTML']:
                 home_page = f'<h1 class="home"><a href="{relative_path}">{new_name}</a></h1>\n'
             else:
                 html += f'<li class="file"><a href="{relative_path}">{new_name}</a></li>\n'
@@ -200,7 +242,7 @@ def create_menu(dst_path: Path):
                     data = html.read()
                 with open(sub_path, "w", encoding="utf-8") as html:
                     folder_id_counter = 0
-                    data = data.replace(MENU_PLACEHOLDER_NAME, f"<div class='menu'>{set_menu(sub_path, dst_path, folder_id_counter, dst_path)}</div>")
+                    data = data.replace(config_storage['MENU_PLACEHOLDER_NAME'], f"<div class='menu'>{set_menu(sub_path, dst_path, folder_id_counter, dst_path)}</div>")
                     # html.write(set_menu(path, root_path))
                     html.write(data)            
  
@@ -292,32 +334,31 @@ def copy_directory(src_path: Path, dst_path: Path):
                     <head>
                         <meta charset="UTF-8">
                         <title>{target.stem}</title>
-                        <link rel="stylesheet" href={path.relpath(dst_path / DST_CSS, target.parent)}>
-                        <link rel="icon" href={path.relpath(dst_folder/PATH_TO_FAVICON, target.parent)} type="image/x-icon">
+                        <link rel="stylesheet" href={path.relpath(dst_path / Path(config_storage['ROOT_CSS']), target.parent)}>
+                        <link rel="icon" href={path.relpath(dst_folder/Path(config_storage['PATH_TO_FAVICON']), target.parent)} type="image/x-icon">
                     </head>
                     <body>
                         
                         <div class="main">
-                            {MENU_PLACEHOLDER_NAME}
+                            {config_storage['MENU_PLACEHOLDER_NAME']}
                             <div class="content">
                             <h1 class="topic-name">{target.stem}</h2>
                             {md_to_html}
                             </div>
                         </div>
                     </body>
-                    <script src={path.relpath(dst_path / DST_JS, target.parent)}></script>
+                    <script src={path.relpath(dst_path / Path(config_storage['ROOT_JS']), target.parent)}></script>
                 </html>
                 """
-            if not target.exists() or (target.exists() and OVERWRITE):
-                print(target.name)
-                with open(target, "w", encoding="utf-8") as f:
-                    f.write(html_content)
+            print(target.name)
+            with open(target, "w", encoding="utf-8") as f:
+                f.write(html_content)
 
         elif sub_path.suffix in image_extensions:
             img = Image.open(sub_path)
             img.save(target)
-    if not DEFAULT_JSON_FOLDER.is_dir():
-        DEFAULT_JSON_FOLDER.mkdir(parents=True, exist_ok=True)
+    if not Path(config_storage['DEFAULT_JSON_FOLDER']).is_dir():
+        Path(config_storage['DEFAULT_JSON_FOLDER']).mkdir(parents=True, exist_ok=True)
 
 #---------------------------STYLING------------------------------------
 
@@ -326,7 +367,7 @@ def set_photos(html: str, current_path: Path, dst_path: Path) -> str:
 
     def replacer(match):
         filename = match.group(1).strip()
-        image_path = path.join(path.relpath(dst_path / PATH_TO_IMAGES, current_path.parent), filename)
+        image_path = path.join(path.relpath(dst_path / Path(config_storage['PATH_TO_IMAGES']), current_path.parent), filename)
         
         return f'<div class="image-div"><img src="{image_path}" alt="{filename}" /></div>'
 
@@ -362,7 +403,6 @@ def print_help():
 if __name__ == "__main__":
     CREATE_CSS = False
     CREATE_HTML = False
-    OVERWRITE = False
     arguments = []
     for arg in sys.argv[1:]:
         arguments.append(arg)
@@ -395,17 +435,22 @@ if __name__ == "__main__":
                 CREATE_HTML=True
             elif arg == "--rc":
                 CREATE_CSS=True
-            elif arg == "--force":
-                OVERWRITE = True
             
             i+=1
+
+        #-------------CONFIG-------------------
+        if not path.exists(CONFIG_FILE):
+            create_config()
+            print("Config file has been created!")
+
+        config_storage = read_config()
 
         #Generate new json 
         tree = generate_json(src_vault)
         new_json = json.dumps(tree, indent=4)
 
         src_dir_name = path.basename(src_vault)
-        vault_path = Path(DEFAULT_JSON_FOLDER/f"{src_dir_name}.json")
+        vault_path = Path(config_storage['DEFAULT_JSON_FOLDER'])/f"{src_dir_name}.json"
 
         if path.exists(vault_path):
             make_changes(tree, vault_path, src_vault, dst_folder)
@@ -417,16 +462,18 @@ if __name__ == "__main__":
                 print(f"New vault has been created: {vault_path}")
             copy_directory(Path(src_vault), Path(dst_folder))
 
-        if CREATE_CSS:
-            create_css(dst_folder)
-        if CREATE_HTML:
-            create_root(dst_folder)
         try:
             shutil.copytree(Path("assets"), dst_folder/"assets", ignore=shutil.ignore_patterns('script.js', 'style.css'))
         except:
             print("Assets folder already exists!")
+
+        if CREATE_CSS:
+            create_css(dst_folder)
+        if CREATE_HTML:
+            create_root(dst_folder)
         create_js(dst_folder)
         create_menu(dst_folder)
         
         print(f"Vault has been converted to {dst_folder}")
+        print(Path(config_storage['ROOT_CSS']))
     
