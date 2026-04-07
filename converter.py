@@ -14,7 +14,9 @@ import configparser
 
 #TODO: CREATE TEMPLATES HTML?
 
-#TODO: MAKE MANAGEMENTS OF YHE MAIN INDEX.HTML FILES
+#TODO: MAKE MANAGEMENT OF THE MAIN INDEX.HTML FILES
+
+#TODO: DELETE DIRS
 
 #--------------------------GONFIG SECTION-----------------------
 
@@ -97,7 +99,7 @@ def create_root(dst: Path):
         md_to_html="<h1>Main Page</h1>"
     html_content = f"""
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="uk">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -115,6 +117,9 @@ def create_root(dst: Path):
             </div>
             
         </body>
+        <footer>
+            <p>Created with <a href="https://github.com/laym0z/Onyx">Onyx</a> by <a href=https://github.com/laym0z>laym0z</a></p>
+        </footer>
         <script src="{Path(config_storage['ROOT_JS'])}"></script>
         </html>
     """
@@ -189,8 +194,7 @@ def delete_dirs_and_files(remove_files: dict, remove_dirs: dict, dst: Path):
             pass
     for value in remove_dirs:
         path_obj = Path(value)
-        dir_name = path.basename(path_obj)
-        new_path = Path(dst/dir_name)
+        new_path = Path(dst/path_obj)
         try:
             shutil.rmtree(new_path, ignore_errors=True)
         except:
@@ -347,10 +351,13 @@ def copy_directory(src_path: Path, dst_path: Path):
                             </div>
                         </div>
                     </body>
+                    <footer>
+                        <p>Created with <a href="https://github.com/laym0z/Onyx">Onyx</a> by <a href=https://github.com/laym0z>laym0z</a></p>
+                    </footer>
                     <script src={path.relpath(dst_path / Path(config_storage['ROOT_JS']), target.parent)}></script>
                 </html>
                 """
-            print(target.name)
+            # print(target.name)
             with open(target, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
@@ -475,5 +482,4 @@ if __name__ == "__main__":
         create_menu(dst_folder)
         
         print(f"Vault has been converted to {dst_folder}")
-        print(Path(config_storage['ROOT_CSS']))
     

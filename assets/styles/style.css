@@ -1,7 +1,7 @@
 /* === Base Layout === */
 body {
     margin: 0;
-    padding: 10px 10px;
+    padding: 0;
     background-color: #2e3440;
     color: #dcddde;
     font-family: DejaVu Sans Mono, monospace;
@@ -269,6 +269,22 @@ img {
     display: flex;
     justify-content: center;
     align-content: center;
+}
+
+footer {
+    height: auto;
+    background-color: #3b4252;
+    padding: 0;
+    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+footer p {
+    color: grey;
+    text-align: center;
+    height: auto;
 }
 
 /* .menu {
