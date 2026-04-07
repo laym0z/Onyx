@@ -44,7 +44,6 @@ venv/bin/pip install -r requirements.txt
 --src [PATH]    # the source obsidian vault
 --dst [PATH]    # the destination foulder where is converted vault gonna be stored
 
---ri            # write and overwrite index.html
 --rc            # write and overwrite style.css
 ```
 
@@ -53,15 +52,9 @@ venv/bin/pip install -r requirements.txt
 # 🎓Example of use
 
 ```
-.\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path" --ri --rc
+.\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path" --rc
 ```
 
 ```
 .\venv\Scripts\python.exe .\converter.py --src "D:\Source\Path" --dst "D:\Destination\Path"
 ```
-
----
-
-## Main Page
-
-You can make the `index.md` file in the same directory with `converter.py` and cusomize it with simple MD syntax (NOT OBSIDIAN!). Then just use `--ri` option to rewrite changes.

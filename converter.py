@@ -1,6 +1,6 @@
 import markdown
 import re
-from os import path, remove, rmdir
+from os import path, remove, rmdir, mkdir
 from pathlib import Path
 from PIL import Image
 import sys
@@ -14,9 +14,7 @@ import configparser
 
 #TODO: CREATE TEMPLATES HTML?
 
-#TODO: MAKE MANAGEMENT OF THE MAIN INDEX.HTML FILES
-
-#TODO: DELETE DIRS
+#TODO: MAKE MANAGEMENT OF THE MAIN INDEX.HTML FILE
 
 #--------------------------GONFIG SECTION-----------------------
 
@@ -24,7 +22,7 @@ ARGS = {
     "--help": "print help menu",
     "--src": "source directory (--src [PATH])",
     "--dst": "destination directory (--dst [PATH])",
-    "--ri": "write or rewrite main page",
+    # "--ri": "write or rewrite main page",
     "--rc": "write or rewrite style.css "
 }
 blacklist_menu = ["images", "style.css", "assets", "script.js"]
@@ -90,13 +88,16 @@ def create_css(dst: Path):
     with open(dst / Path(config_storage['ROOT_CSS']), "w") as f:
         f.write(css_text)
 
-def create_root(dst: Path):
-    try:
-        with open(Path(config_storage['ROOT_MD']), "r", encoding="utf-8") as index:
+def create_root(dst: Path, vault_folder: Path):
+    if path.exists(vault_folder/"index.md"):
+        with open(vault_folder/"index.md", "r", encoding="utf-8") as index:
             text = index.read()
             md_to_html = markdown.markdown(text,extensions=["fenced_code"])
-    except:
-        md_to_html="<h1>Main Page</h1>"
+    else:
+        with open(vault_folder/"index.md", "w", encoding="utf-8") as index:
+            text = f"This is the main page. You can change its content in the `Vaults/{path.basename(vault_folder)}/index.md`"
+            index.write(text)
+            md_to_html = markdown.markdown(text, extensions=["fenced_code"])
     html_content = f"""
         <!DOCTYPE html>
         <html lang="uk">
@@ -409,7 +410,7 @@ def print_help():
 
 if __name__ == "__main__":
     CREATE_CSS = False
-    CREATE_HTML = False
+    # CREATE_HTML = False
     arguments = []
     for arg in sys.argv[1:]:
         arguments.append(arg)
@@ -438,8 +439,8 @@ if __name__ == "__main__":
                     print(f"Path is invalid")
                     print_help()
                     sys.exit()
-            elif arg == "--ri":
-                CREATE_HTML=True
+            # elif arg == "--ri":
+            #     CREATE_HTML=True
             elif arg == "--rc":
                 CREATE_CSS=True
             
@@ -457,16 +458,21 @@ if __name__ == "__main__":
         new_json = json.dumps(tree, indent=4)
 
         src_dir_name = path.basename(src_vault)
-        vault_path = Path(config_storage['DEFAULT_JSON_FOLDER'])/f"{src_dir_name}.json"
 
-        if path.exists(vault_path):
-            make_changes(tree, vault_path, src_vault, dst_folder)
-            with open(vault_path, "w", encoding="utf-8") as f:
+        vault_folder = Path(config_storage['DEFAULT_JSON_FOLDER'])
+        vault_path_to_json = vault_folder/src_dir_name/f"{src_dir_name}.json"
+
+        if path.exists(vault_path_to_json):
+            make_changes(tree, vault_path_to_json, src_vault, dst_folder)
+            with open(vault_path_to_json, "w", encoding="utf-8") as f:
                 f.write(json.dumps(tree, indent=4))
         else:
-            with open(vault_path, "w", encoding="utf-8") as f:
+            if not path.exists(vault_folder/src_dir_name):
+                mkdir(vault_folder/src_dir_name)
+            with open(vault_path_to_json, "w", encoding="utf-8") as f:
                 f.write(json.dumps(tree, indent=4))
-                print(f"New vault has been created: {vault_path}")
+                print(f"New vault has been created: {vault_path_to_json}")
+            
             copy_directory(Path(src_vault), Path(dst_folder))
 
         try:
@@ -476,8 +482,7 @@ if __name__ == "__main__":
 
         if CREATE_CSS:
             create_css(dst_folder)
-        if CREATE_HTML:
-            create_root(dst_folder)
+        create_root(dst_folder, vault_folder/src_dir_name)
         create_js(dst_folder)
         create_menu(dst_folder)
         
