@@ -2,7 +2,7 @@
 body {
     margin: 0;
     padding: 0;
-    background: linear-gradient(180deg,rgba(42, 45, 52, 1) 0%, rgba(30, 30, 43, 1) 100%);
+    background: radial-gradient(circle,rgb(73, 77, 85) 0%, rgba(30, 30, 43, 1) 100%);
     color: #dcddde;
     font-family: DejaVu Sans Mono, monospace;
     line-height: 1.6;
@@ -86,7 +86,7 @@ a:hover {
     /* padding: 30px; */
     padding-right: 0;
     /* border-right: 2px solid #3b4252; */
-    background-color: rgb(52, 55, 65, 0.5);
+    background-color: rgba(112, 115, 125, 0.2);
     margin: 10px;
 
 }
@@ -166,8 +166,8 @@ li {
 }
 
 .folder.open> .folder-name {
-    background: rgb(8, 69, 160)
-    /* background: linear-gradient(-90deg,rgba(53, 133, 249, 1) 0%, rgba(0, 53, 133, 1) 100%); */
+    background: rgb(8, 69, 160);
+    background: linear-gradient(-90deg,rgb(42, 110, 211) 0%, rgb(14, 69, 152) 100%);
 }
 
 .folder.open> .folder-name img {
