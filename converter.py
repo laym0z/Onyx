@@ -29,9 +29,11 @@ blacklist_menu = ["images", "style.css", "assets", "script.js"]
 
 CONFIG_FILE = "config.ini"
 
+VAULTS_FOLDER = Path("Vaults")
+
 config_storage = {}
 
-def create_config():
+def create_config(vault: Path):
     config = configparser.ConfigParser()
 
     config['PLACEHOLDERS'] = {
@@ -49,21 +51,19 @@ def create_config():
         'PATH_TO_IMAGES': 'images/',
         'PATH_TO_FOLDER_ICON': 'assets/icons/folder.png',
         'PATH_TO_FAVICON': 'assets/icons/favicon.ico',
-        'DEFAULT_JSON_FOLDER': 'Vaults'
     }
 
     config['BLACKLIST'] = {
         'blacklist_files': ["images", "style.css", "assets", "script.js"]
     }
 
-    with open('config.ini', 'w') as configfile:
+    with open(vault/CONFIG_FILE, 'w') as configfile:
         config.write(configfile)
 
-def read_config():
+def read_config(vault: Path):
     config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
+    config.read(VAULTS_FOLDER/vault/CONFIG_FILE)
     config_storage = {
-        'DEFAULT_JSON_FOLDER': config.get('DEFAULT_PATHES', 'DEFAULT_JSON_FOLDER'),
         'PATH_TO_IMAGES': config.get('DEFAULT_PATHES', 'PATH_TO_IMAGES'),
         'PATH_TO_FOLDER_ICON': config.get('DEFAULT_PATHES', 'PATH_TO_FOLDER_ICON'),
         'PATH_TO_FAVICON': config.get('DEFAULT_PATHES', 'PATH_TO_FAVICON'),
@@ -365,7 +365,7 @@ def copy_directory(src_path: Path, dst_path: Path):
         elif sub_path.suffix in image_extensions:
             img = Image.open(sub_path)
             img.save(target)
-    if not Path(config_storage['DEFAULT_JSON_FOLDER']).is_dir():
+    if not Path(VAULTS_FOLDER).is_dir():
         Path(config_storage['DEFAULT_JSON_FOLDER']).mkdir(parents=True, exist_ok=True)
 
 #---------------------------STYLING------------------------------------
@@ -447,28 +447,26 @@ if __name__ == "__main__":
             i+=1
 
         #-------------CONFIG-------------------
-        if not path.exists(CONFIG_FILE):
-            create_config()
+        src_dir_name = path.basename(src_vault)
+        if not path.exists(VAULTS_FOLDER/src_dir_name/CONFIG_FILE):
+            create_config(Path(VAULTS_FOLDER/src_dir_name))
             print("Config file has been created!")
 
-        config_storage = read_config()
-
+        config_storage = read_config(Path(src_dir_name))
         #Generate new json 
         tree = generate_json(src_vault)
         new_json = json.dumps(tree, indent=4)
 
-        src_dir_name = path.basename(src_vault)
-
-        vault_folder = Path(config_storage['DEFAULT_JSON_FOLDER'])
-        vault_path_to_json = vault_folder/src_dir_name/f"{src_dir_name}.json"
+        
+        vault_path_to_json = VAULTS_FOLDER/src_dir_name/f"{src_dir_name}.json"
 
         if path.exists(vault_path_to_json):
             make_changes(tree, vault_path_to_json, src_vault, dst_folder)
             with open(vault_path_to_json, "w", encoding="utf-8") as f:
                 f.write(json.dumps(tree, indent=4))
         else:
-            if not path.exists(vault_folder/src_dir_name):
-                mkdir(vault_folder/src_dir_name)
+            if not path.exists(VAULTS_FOLDER/src_dir_name):
+                mkdir(VAULTS_FOLDER/src_dir_name)
             with open(vault_path_to_json, "w", encoding="utf-8") as f:
                 f.write(json.dumps(tree, indent=4))
                 print(f"New vault has been created: {vault_path_to_json}")
@@ -481,7 +479,7 @@ if __name__ == "__main__":
             print("Assets folder already exists!")
 
         
-        create_root(dst_folder, vault_folder/src_dir_name)
+        create_root(dst_folder, VAULTS_FOLDER/src_dir_name)
         create_js(dst_folder)
         create_menu(dst_folder)
         create_css(dst_folder)
