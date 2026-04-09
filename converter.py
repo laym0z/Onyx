@@ -14,7 +14,7 @@ import configparser
 
 #TODO: CREATE TEMPLATES HTML?
 
-#TODO: MAKE MANAGEMENT OF THE MAIN INDEX.HTML FILE
+#TODO: TRACK ASSETS FOLDER CHANGES
 
 #--------------------------GONFIG SECTION-----------------------
 
@@ -480,11 +480,10 @@ if __name__ == "__main__":
         except:
             print("Assets folder already exists!")
 
-        if CREATE_CSS:
-            create_css(dst_folder)
+        
         create_root(dst_folder, vault_folder/src_dir_name)
         create_js(dst_folder)
         create_menu(dst_folder)
-        
+        create_css(dst_folder)
         print(f"Vault has been converted to {dst_folder}")
     
